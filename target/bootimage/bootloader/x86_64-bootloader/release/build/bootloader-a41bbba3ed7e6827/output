@@ -1,0 +1,7 @@
+cargo:rerun-if-changed=/home/seal/github/sos/Cargo.toml
+cargo:rustc-link-search=native=/home/seal/github/sos/target/bootimage/bootloader/x86_64-bootloader/release/build/bootloader-a41bbba3ed7e6827/out
+cargo:rustc-link-lib=static=kernel_bin-sos-6471c583cb0d88f3
+cargo:rerun-if-env-changed=KERNEL
+cargo:rerun-if-env-changed=KERNEL_MANIFEST
+cargo:rerun-if-changed=/home/seal/github/sos/target/target_config/debug/deps/sos-6471c583cb0d88f3
+cargo:rerun-if-changed=build.rs
