@@ -4,3 +4,6 @@ target = "target_config.json"
 [unstable]
 build-std-features = ["compiler-builtins-mem"]
 build-std = ["core", "compiler_builtins"]
+
+[target.'cfg(target_os = "none")']
+runner = "bootimage runner"
