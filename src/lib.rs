@@ -1,30 +1,53 @@
 #![no_std]
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
+#![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 pub mod serial;
 pub mod vga_buffer;
+pub mod colors;
+pub mod testing;
 
+use crate::testing::Testable;
+
+#[cfg(test)]
+use crate::colors::Red;
+#[cfg(test)]
 use core::panic::PanicInfo;
-use core::fmt;
 
-pub fn test_panic_handler(info: &PanicInfo) -> ! {
+/// This runner just iterates through all of the tests and executes them
+pub fn test_runner(tests: &[&dyn Testable]) {
+    serial_println!("Running {} tests", tests.len());
+    for test in tests {
+        test.run();
+    }
+    exit_qemu(QemuExitCode::Success);
+}
+
+#[cfg(test)]
+#[no_mangle]
+/// Another start function in charge of starting test cases
+pub extern "C" fn _start() -> ! {
+    test_main();
+    loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+/// Another panic handler similar to the previous one. In this case however, information is printed
+/// to the serial console so the qemu window does not have to be launched. This panic handler is
+/// called when tests are being run
+fn panic(info: &PanicInfo) -> ! {
     serial_println!("{}", Red("[failed]"));
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
     loop {}
 }
 
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    test_panic_handler(info)
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
+/// Enum describing different exit codes used by qemu
 pub enum QemuExitCode {
     Success = 0x10,
     Failed = 0x11,
@@ -40,62 +63,3 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-#[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    test_main();
-    loop {}
-}
-
-struct Green(&'static str);
-impl fmt::Display for Green {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { 
-        write!(f, "\x1B[32m")?;
-        write!(f, "{}", self.0)?;
-        write!(f, "\x1B[0m")?;
-        Ok(())
-    }
-}
-
-struct Red(&'static str);
-impl fmt::Display for Red {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { 
-        write!(f, "\x1B[31m")?; // prefix code
-        write!(f, "{}", self.0)?;
-        write!(f, "\x1B[0m")?; // postfix code
-        Ok(())
-    }
-}
-
-pub trait Testable {
-    fn run(&self) -> ();
-}
-
-impl<T> Testable for T
-where
-    T: Fn(),
-{
-    fn run(&self) {
-        serial_print!("{}...\t", core::any::type_name::<T>());
-        self();
-        serial_println!("{}", Green("[ok]"));
-    }
-}
-
-pub fn test_runner(tests: &[&dyn Testable]) {
-    serial_println!("Running {} tests", tests.len());
-    for test in tests {
-        test.run();
-    }
-    exit_qemu(QemuExitCode::Success);
-}
-
-#[test_case]
-fn passing_test() {
-    assert_eq!(1, 1);
-}
-
-#[test_case]
-fn failing_test() {
-    assert_eq!(1, 0);
-}

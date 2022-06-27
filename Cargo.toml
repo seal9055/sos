@@ -20,6 +20,11 @@ uart_16550 = "0.2.0"
 version = "1.0"
 features = ["spin_no_std"]
 
+# These options make running test cases through qemu much more practical
+# The timeout automatically stops the run if the test-cases take too long
+# Qemu returns 0x10 on Success instead of 0, so we also specify a different exit code for 
+# successful tests. The other options allow the test-results to be transmitted over the serial 
+# console without ever opening a qemu window
 [package.metadata.bootimage]
 test-args = [
     "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", 

@@ -68,16 +68,19 @@ impl ColorCode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
+/// 2 byte character representation that can be written to the vga console
 struct ScreenChar {
     ascii_character: u8,
     color_code: ColorCode,
 }
 
 #[repr(transparent)]
+/// Array containing the emitted characters
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
+/// Writer struct for the vga console. Handles the current cursor position and the emitted text
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
@@ -92,6 +95,7 @@ impl fmt::Write for Writer {
 }
 
 impl Writer {
+    /// Emits a single byte to the console. Handles newline's when required
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
@@ -113,6 +117,7 @@ impl Writer {
         }
     }
 
+    /// Emits a new line. This shifts all other lines up by one
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
@@ -124,6 +129,7 @@ impl Writer {
         self.column_position = 0;
     }
 
+    /// Removes a row from the console
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
             ascii_character: b' ',
@@ -134,6 +140,7 @@ impl Writer {
         }
     }
 
+    /// Writes an ascii string to the console
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
