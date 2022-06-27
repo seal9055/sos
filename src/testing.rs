@@ -29,7 +29,23 @@ fn passing_test() {
 }
 
 #[test_case]
+/// Invoke a breakpoint exception
+fn test_breakpoint_exception() {
+    x86_64::instructions::interrupts::int3();
+}
+
+/*
+#[test_case]
 /// Trivial test meant to fail
 fn failing_test() {
     assert_eq!(1, 0);
 }
+
+#[test_case]
+fn stack_overflow_double_fault_should_panic() {
+    fn stack_overflow() {
+        stack_overflow();
+    }
+    stack_overflow();
+}
+*/

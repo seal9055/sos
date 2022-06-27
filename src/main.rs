@@ -11,7 +11,7 @@ use sos::println;
 /// Panic handler
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    sos::hlt_loop();
 }
 
 #[no_mangle]
@@ -19,10 +19,16 @@ fn panic(info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");
 
-    // Conditional Compilation call to test_main instead of standard main function when run 
+    // Initialize the kernel
+    sos::init();
+
+    // Conditional Compilation call to test_main instead of standard main 
+    // function when run 
     // using `cargo test`
     #[cfg(test)]
     test_main();
 
-    loop {}
+    println!("No Crash");
+
+    sos::hlt_loop();
 }
