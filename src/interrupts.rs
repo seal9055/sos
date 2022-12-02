@@ -1,9 +1,14 @@
 use crate::{println, print, gdt};
+use crate::hlt_loop;
 
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use spin;
 use pic8259::ChainedPics;
 use lazy_static::lazy_static;
-use spin;
+use x86_64::structures::idt::{
+    InterruptDescriptorTable, 
+    InterruptStackFrame,
+    PageFaultErrorCode,
+};
 
 /// PIC_1 takes care of interrupt lines 32-39
 pub const PIC_1_OFFSET: u8 = 32;
@@ -30,6 +35,9 @@ lazy_static! {
 
         // Interrupt: Breakpoint
         idt.breakpoint.set_handler_fn(breakpoint_handler);
+
+        // Interrupt: Page Fault
+        idt.page_fault.set_handler_fn(page_fault_handler);
 
         // Interrupt: Double Fault - uses IST[0] as its stack pointer
         unsafe {
@@ -63,6 +71,18 @@ extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
 extern "x86-interrupt" fn double_fault_handler(
     stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+}
+
+/// Handles page faults
+extern "x86-interrupt" fn page_fault_handler(
+        stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
+    use x86_64::registers::control::Cr2;
+
+    println!("EXCEPTION: PAGE FAULT");
+    println!("Accessed Addresses: {:?}", Cr2::read());
+    println!("Error Code: {:?}", error_code);
+    println!("{:#?}", stack_frame);
+    hlt_loop();
 }
 
 /// Handles hardware exceptions that occur due to the timer pic line
